@@ -9,11 +9,11 @@
     <div v-if="currentTab === 'weather'">
       <div>
         <AutoComplete
-        :key="autocompleteKey"
-        @selected="addWeatherBlock"
-        :can-add-weather-block="canAddWeatherBlock"
-        ref="autoComplete"
-      />
+          :key="autocompleteKey"
+          @selected="addWeatherBlock"
+          :can-add-weather-block="canAddWeatherBlock"
+          ref="autoComplete"
+        />
       </div>
       <div v-for="cityWeather in weatherData" :key="cityWeather.cityName">
         <WeatherBlock
@@ -22,6 +22,7 @@
           @toggle-favorite="toggleFavoriteCity"
           :isFavorite="isFavoriteCity(cityWeather.cityName)"
         />
+        <TemperatureGraph :hourlyTemperatures="hourlyTemperatureData" />
       </div>
     </div>
     <div v-else-if="currentTab === 'favorites'">
@@ -33,15 +34,16 @@
           :showRemoveButton="true"
           @remove-favorite="showRemoveFavoriteModal"
         />
+        <TemperatureGraph :hourlyTemperatures="hourlyTemperatureData" />
       </div>
     </div>
     <ModalConfirm
-    v-if="showModal || showRemoveFavoriteModal || showAddWeatherErrorModal"
-    :show="showModal || showRemoveFavoriteModal || showAddWeatherErrorModal"
-    :message="modalMessage || removeFavoriteModalMessage || weatherErrorModalMessage"
-    @confirm="onConfirmModal"
-    @cancel="onCancelModal"
-  />
+      v-if="showModal || showRemoveFavoriteModal || showAddWeatherErrorModal"
+      :show="showModal || showRemoveFavoriteModal || showAddWeatherErrorModal"
+      :message="modalMessage || removeFavoriteModalMessage || weatherErrorModalMessage"
+      @confirm="onConfirmModal"
+      @cancel="onCancelModal"
+    />
   </div>
 </template>
 
@@ -86,46 +88,35 @@ export default {
   },
   methods: {
     async addWeatherBlock(cityName) {
-      try {
-        const encodedCityName = encodeURIComponent(cityName);
+  try {
+    const encodedCityName = encodeURIComponent(cityName);
 
-        const response = await fetch(
-          `https://api.openweathermap.org/data/2.5/find?q=${encodedCityName}&appid=17dc71bb4ac06ea33cab56e5935c72a3`
-        );
+    const response = await fetch(
+      `https://api.openweathermap.org/data/2.5/find?q=${encodedCityName}&appid=17dc71bb4ac06ea33cab56e5935c72a3`
+    );
 
-        if (!response.ok) {
-          throw new Error('City not found');
-        }
+    if (!response.ok) {
+      throw new Error('City not found');
+    }
 
-        const data = await response.json();
-        const weatherInfo = data.list[0];
-        if (this.weatherData.length >= 5) {
-          this.showModal = true;
-          this.modalMessage = "You can't add more than 5 weather blocks. Remove a weather block to add a new one.";
-          return;
-        }
+    const data = await response.json();
+    const weatherInfo = data.list[0];
 
-        this.defaultCityData.cityName = weatherInfo.name;
-        this.defaultCityData.temperature = this.convertKelvinToCelsius(weatherInfo.main.temp);
-        this.defaultCityData.weatherDescription = weatherInfo.weather[0].description;
-        this.defaultCityData.humidity = weatherInfo.main.humidity;
-        this.defaultCityData.windSpeed = weatherInfo.wind.speed;
-        this.defaultCityData.pressure = weatherInfo.main.pressure;
+    const hourlyResponse = await fetch(
+      `https://api.openweathermap.org/data/2.5/forecast?q=${encodedCityName}&appid=17dc71bb4ac06ea33cab56e5935c72a3`
+    );
+    const hourlyData = await hourlyResponse.json();
 
-        const hourlyResponse = await fetch(
-          `https://api.openweathermap.org/data/2.5/forecast?q=${encodedCityName}&appid=17dc71bb4ac06ea33cab56e5935c72a3`
-        );
-        const hourlyData = await hourlyResponse.json();
+    const currentDate = new Date();
+    const currentTimestamp = currentDate.getTime();
 
-        const currentDate = new Date();
-        const currentDay = currentDate.getDate();
-        const filteredHourlyData = hourlyData.list.filter((hourData) => {
-          const hourDate = new Date(hourData.dt_txt);
-          return hourDate.getDate() === currentDay;
-        });
+    const next24HoursData = hourlyData.list.filter((hourData) => {
+      const hourTimestamp = new Date(hourData.dt_txt).getTime();
+      return hourTimestamp >= currentTimestamp && hourTimestamp <= currentTimestamp + 24 * 60 * 60 * 1000;
+    });
 
-        this.defaultCityData.hourlyTemperatures = filteredHourlyData.map((hourData) => {
-          const time = new Date(hourData.dt_txt).toLocaleTimeString();
+    const hourlyTemperatures = next24HoursData.map((hourData) => {
+          const time = new Date(hourData.dt_txt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
           const temperature = this.convertKelvinToCelsius(hourData.main.temp);
 
           return {
@@ -134,17 +125,26 @@ export default {
           };
         });
 
-        console.log('Default City Weather Data:', this.defaultCityData);
+    this.weatherData.push({
+          cityName: weatherInfo.name,
+          temperature: this.convertKelvinToCelsius(weatherInfo.main.temp),
+          weatherDescription: weatherInfo.weather[0].description,
+          humidity: weatherInfo.main.humidity,
+          windSpeed: weatherInfo.wind.speed,
+          pressure: weatherInfo.main.pressure,
+          hourlyTemperatures: hourlyTemperatures,
+          isWeatherFavorited: false,
+        });
 
-        this.weatherData.push({ ...this.defaultCityData });
+    this.autocompleteKey += 1;
+    console.log('hourlyTemperatures:', hourlyTemperatures);
+  } catch (error) {
+    this.showModal = true;
+    this.modalMessage = 'Oops! Enter the correct city name.';
+    console.error('Error fetching weather data:', error);
+  }
+},
 
-        this.autocompleteKey += 1;
-      } catch (error) {
-        this.showModal = true;
-        this.modalMessage = 'Oops! Enter correct city name';
-        console.error('Error fetching weather data:', error);
-      }
-    },
     addWeatherBlockButton() {
       if (this.weatherData.length >= 5) {
         this.showModal = true;
@@ -260,5 +260,4 @@ export default {
 </script>
 
 <style>
-
 </style>

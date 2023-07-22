@@ -1,79 +1,95 @@
 <template>
-  <div class="weather-graph">
-    <canvas ref="chartCanvas"></canvas>
+  <div>
+    <canvas ref="chartCanvas" :key="chartKey" />
   </div>
 </template>
 
 <script>
-import { ref, watchEffect } from 'vue';
-import Chart from 'chart.js/auto';
+import { defineComponent } from 'vue';
+import { Chart, LineElement, PointElement, LinearScale, Title } from 'chart.js/auto';
 
-export default {
+Chart.register(LineElement, PointElement, LinearScale, Title);
+
+export default defineComponent({
   props: {
     hourlyTemperatures: {
       type: Array,
       required: true,
     },
   },
-  setup(props) {
-    const chartRef = ref(null);
-
-    watchEffect(() => {
-      if (!props.hourlyTemperatures || props.hourlyTemperatures.length === 0) {
-        return;
+  data() {
+    return {
+      chartKey: 0,
+      chart: null,
+    };
+  },
+  mounted() {
+    this.createChart();
+  },
+  methods: {
+    createChart() {
+      if (this.chart) {
+        this.chart.destroy();
       }
 
-      const labels = props.hourlyTemperatures.map((data) => data.time);
-      const data = props.hourlyTemperatures.map((data) => data.temperature);
+      const ctx = this.$refs.chartCanvas.getContext('2d');
 
-      if (chartRef.value) {
-        chartRef.value.destroy();
-      }
+      const times = this.hourlyTemperatures.map((data) => data.time);
+      const temperatures = this.hourlyTemperatures.map((data) => data.temperature);
 
-      chartRef.value = new Chart(chartRef, {
+      this.chart = new Chart(ctx, {
         type: 'line',
         data: {
-          labels: labels,
+          labels: times,
           datasets: [
             {
-              label: 'Hourly Temperature (°C)',
-              data: data,
+              label: 'Temperature (°C)',
+              data: temperatures,
+              backgroundColor: 'rgba(75, 192, 192, 0.2)',
               borderColor: 'rgba(75, 192, 192, 1)',
-              borderWidth: 2,
-              fill: false,
+              borderWidth: 1,
             },
           ],
         },
-        options: {
-          scales: {
-            x: {
-              type: 'time',
-              time: {
-                displayFormats: {
-                  hour: 'HH:mm',
-                },
-              },
-              ticks: {
-                maxTicksLimit: 6,
-              },
-            },
-            y: {
-              beginAtZero: true,
+        options: this.chartOptions,
+      });
+    },
+    generateLabels(currentTime) {
+      const labels = [];
+      const hoursToAdd = 24 - currentTime.getHours();
+
+      for (let i = 0; i <= hoursToAdd; i++) {
+        const time = new Date(currentTime);
+        time.setHours(currentTime.getHours() + i);
+        labels.push(time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      }
+
+      return labels;
+    },
+  },
+  computed: {
+    chartOptions() {
+      return {
+        responsive: true,
+        scales: {
+          x: {
+            ticks: {
+              display: true,
             },
           },
-          responsive: true,
-          maintainAspectRatio: false,
+          y: {
+            beginAtZero: true,
+            title: {
+              display: true,
+              text: 'Temperature (°C)',
+            },
+          },
         },
-      });
-    });
-
-    return { chartRef };
+      };
+    },
   },
-};
+});
 </script>
 
 <style>
-.weather-graph {
-  margin: 16px 0;
-}
 </style>
