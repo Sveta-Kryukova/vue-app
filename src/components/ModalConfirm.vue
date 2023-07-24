@@ -3,8 +3,8 @@
     <div class="modal">
       <div class="modal-content">
         <p>{{ message }}</p>
-        <button @click="onConfirm" class="modal-confirm-button">Confirm</button>
-        <button @click="onCancel" class="modal-cancel-button">Cancel</button>
+        <button @click="onCancel" class="modal-cancel-button">{{$t('modal.cancel')}}</button>
+        <button @click="onConfirm" class="modal-confirm-button">{{$t('modal.confirm')}}</button>
       </div>
     </div>
   </div>
@@ -57,24 +57,38 @@ export default {
 }
 
 .modal-confirm-button {
-  background-color: #007BFF;
+  background-color: #70bcef;
   color: #fff;
-  border: none;
-  border-radius: 4px;
+  border: 1px solid transparent;
+  border-radius: 14px;
   padding: 10px 20px;
   cursor: pointer;
   font-size: 16px;
   margin-right: 8px;
+  transition: all 0.2s ease-in-out;
+}
+
+.modal-confirm-button:hover {
+  background-color: #70ef79;
+  color: #fff;
+  border: 1px solid transparent;
 }
 
 .modal-cancel-button {
-  background-color: #dc3545;
+  background-color: #e67984;
   color: #fff;
-  border: none;
-  border-radius: 4px;
+  border: 1px solid transparent;
+  border-radius: 14px;
   padding: 10px 20px;
   cursor: pointer;
   font-size: 16px;
+  transition: all 0.2s ease-in-out;
+}
+
+.modal-cancel-button:hover {
+  background-color: #e14454;
+  color: #fff;
+  border: 1px solid transparent;
 }
 
 .modal-content p {

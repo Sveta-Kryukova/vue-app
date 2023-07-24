@@ -1,12 +1,11 @@
 <template>
   <div class="weather-card">
-    <h2 class="city-name">{{ cityName }}</h2>
     <div class="weather-info">
-      <div class="temperature">{{ temperature }}°C</div>
-      <div class="description">{{ weatherDescription }}</div>
-      <div class="humidity">Humidity: {{ humidity }}%</div>
-      <div class="wind">Wind: {{ windSpeed }} km/h</div>
-      <div class="pressure">Pressure: {{ pressure }} hPa</div>
+      <div class="temperature">{{ $t('message.temperature') }}{{ temperature }} °C</div>
+      <div class="description">{{ $t('weatherDescriptions.' + weatherDescription) }}</div>
+      <div class="humidity">{{ $t('message.humidity') }}{{ humidity }} %</div>
+      <div class="wind">{{ $t('message.wind') }}{{ windSpeed }}{{ $t('message.windValue')}}</div>
+      <div class="pressure">{{ $t('message.pressure') }}{{ pressure }} {{$t('message.pressureValue')}}</div>
     </div>
   </div>
 </template>
@@ -44,16 +43,15 @@ export default {
 
 <style>
 .weather-card {
-  border: 1px solid #ccc;
-  border-radius: 5px;
+  display: block;
+  align-self: center;
+  border-radius: 15px;
   padding: 16px;
   margin: 16px 0;
   max-width: 300px;
-}
-
-.city-name {
-  font-size: 24px;
-  margin-bottom: 8px;
+  box-shadow: 0px 2px 20px rgba(0, 0, 0, 0.1);
+  background-color: #fff;
+  width: 100%;
 }
 
 .weather-info {
@@ -65,5 +63,18 @@ export default {
 .temperature {
   font-size: 32px;
   font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.description {
+  font-size: 25px;
+  margin-bottom: 8px;
+}
+
+.humidity,
+.wind,
+.pressure {
+  font-size: 14px;
+  margin-bottom: 4px;
 }
 </style>

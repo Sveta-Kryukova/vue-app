@@ -1,6 +1,6 @@
 <template>
-  <div class="weather-block">
-    <p class="city-name">{{ cityWeather.cityName }}</p>
+  <div class="weather-block" :class="{ 'favorited': isFavorite }">
+    <p class="city-name">{{ cityDisplayName }}</p>
     <WeatherCard
       v-if="cityWeather"
       :cityName="cityWeather.cityName"
@@ -14,17 +14,17 @@
     <TemperatureGraph v-if="cityWeather" :hourlyTemperatures="cityWeather.hourlyTemperatures" />
 
     <div v-if="showRemoveButton">
-      <button @click="confirmRemove">Remove</button>
+      <button @click="confirmRemove">{{ $t('message.remove') }}</button>
     </div>
-    
+
     <div v-if="showFavoriteButton">
-      <button @click="toggleFavorite">{{ isFavorite ? 'Remove from Favorites' : 'Add to Favorites' }}</button>
+      <button @click="toggleFavorite">{{ isFavorite ? $t('message.removeFromFavorites') : $t('message.addToFavorites') }}</button>
     </div>
 
     <ModalConfirm
       v-if="showModal"
       :show="showModal"
-      :message="modalMessage"
+      :message="$t('message.confirmRemove')"
       @confirm="onConfirmRemove"
       @cancel="closeModal"
     />
@@ -85,6 +85,15 @@ export default {
       this.$emit('toggle-favorite', this.cityWeather.cityName);
     },
   },
+  computed: {
+  cityDisplayName() {
+    if (this.cityWeather.cityName) {
+      const translatedCityName = this.$t(`cityNames.${this.cityWeather.cityName}`);
+      return translatedCityName !== `cityNames.${this.cityWeather.cityName}` ? translatedCityName : this.cityWeather.cityName;
+    }
+    return '';
+  },
+},
 };
 </script>
 
@@ -92,7 +101,27 @@ export default {
 .weather-block {
   margin: 16px 0;
   padding: 16px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
+  border:5px solid #eef5f7;
+  border-radius: 40px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background-color: #fff;
+  display: flex;
+  flex-direction: column;
+}
+.city-name {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 27px;
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: rgb(114, 192, 229);
+}
+
+.city-name::before {
+  content: '📍';
+  margin-right: 5px;
+}
+
+.favorited {
+  border:5px solid #fa8ded;
 }
 </style>

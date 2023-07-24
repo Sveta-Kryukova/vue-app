@@ -1,11 +1,16 @@
 <template>
-  <div>
-    <h1>Weather App</h1>
+  <div class="weather-app-container">
+    <h1>{{ $t('message.title') }}</h1>
 
     <div>
-      <button @click="showWeatherTab">Weather</button>
-      <button @click="showFavoritesTab">Favorites</button>
+      <button @click="showWeatherTab" :class="{ 'active-tab': currentTab === 'weather' }">{{ $t('message.weather') }}</button>
+      <button @click="showFavoritesTab" :class="{ 'active-tab': currentTab === 'favorites' }">{{ $t('message.favorites') }}</button>
     </div>
+    <div>
+      <button @click="changeLanguage('en')" :class="{ 'active-tab': activeLanguage === 'en' }">English</button>
+      <button @click="changeLanguage('uk')" :class="{ 'active-tab': activeLanguage === 'uk' }">Українська</button>
+    </div>
+
     <div v-if="currentTab === 'weather'">
       <div>
         <AutoComplete
@@ -15,28 +20,44 @@
           ref="autoComplete"
         />
       </div>
-      <div v-for="cityWeather in weatherData" :key="cityWeather.cityName">
-        <WeatherBlock
-          :cityWeather="cityWeather"
-          @remove-block="removeWeatherBlock"
-          @toggle-favorite="toggleFavoriteCity"
-          :isFavorite="isFavoriteCity(cityWeather.cityName)"
-        />
-        <TemperatureGraph :hourlyTemperatures="hourlyTemperatureData" />
+      <div v-if="loadingWeather">
+        <PreloaderSpinner />
+      </div>
+      <div v-else>
+        <div v-for="cityWeather in weatherData" :key="cityWeather.cityName">
+          <WeatherBlock
+            :cityWeather="cityWeather"
+            @remove-block="removeWeatherBlock"
+            @toggle-favorite="toggleFavoriteCity"
+            :isFavorite="isFavoriteCity(cityWeather.cityName)"
+          />
+
+          <TemperatureGraph
+            :key="cityWeather.cityName + (isWeekGraph ? '-week' : '-day')"
+            :hourlyTemperatures="isWeekGraph ? cityWeather.weeklyHourlyTemperatures : cityWeather.hourlyTemperatures"
+          />
+        </div>
+        <!-- <button @click="switchToDayGraph" v-if="isWeekGraph">Switch to Day Graph</button>
+        <button @click="switchToWeekGraph" v-else>Switch to Week Graph</button> -->
       </div>
     </div>
     <div v-else-if="currentTab === 'favorites'">
-      <div v-for="cityWeather in favoriteCities" :key="cityWeather.cityName">
-        <WeatherBlock
-          :cityWeather="cityWeather"
-          @toggle-favorite="toggleFavoriteCity"
-          :isFavorite="true"
-          :showRemoveButton="true"
-          @remove-favorite="showRemoveFavoriteModal"
-        />
-        <TemperatureGraph :hourlyTemperatures="hourlyTemperatureData" />
-      </div>
-    </div>
+  <div v-for="cityWeather in favoriteCities" :key="cityWeather.cityName">
+    <WeatherBlock
+      :cityWeather="cityWeather"
+      @toggle-favorite="toggleFavoriteCity(cityWeather.cityName)"
+      :isFavorite="true"
+      :showRemoveButton="true"
+      @remove-favorite="showRemoveFavoriteModal(cityWeather.cityName)"
+    />
+    <TemperatureGraph
+      :key="cityWeather.cityName + (isWeekGraph ? '-week' : '-day')"
+      :hourlyTemperatures="isWeekGraph ? cityWeather.weeklyHourlyTemperatures : cityWeather.hourlyTemperatures"
+    />
+  </div>
+  <!-- <button @click="switchToDayGraph" v-if="isWeekGraph">Switch to Day Graph</button>
+  <button @click="switchToWeekGraph" v-else>Switch to Week Graph</button> -->
+</div>
     <ModalConfirm
       v-if="showModal || showRemoveFavoriteModal || showAddWeatherErrorModal"
       :show="showModal || showRemoveFavoriteModal || showAddWeatherErrorModal"
@@ -48,15 +69,17 @@
 </template>
 
 <script>
-import AutoComplete from './AutoComplete.vue';
-import WeatherBlock from './WeatherBlock.vue';
-import ModalConfirm from './ModalConfirm.vue';
+import AutoComplete from './components/AutoComplete.vue';
+import WeatherBlock from './components/WeatherBlock.vue';
+import ModalConfirm from './components/ModalConfirm.vue';
+import PreloaderSpinner from './components/PreloaderSpinner.vue';
 
 export default {
   components: {
     WeatherBlock,
     AutoComplete,
     ModalConfirm,
+    PreloaderSpinner,
   },
   data() {
     return {
@@ -84,11 +107,14 @@ export default {
       canAddWeatherBlock() {
         return this.weatherData.length < 5;
       },
+      loadingWeather: false,
+      loadingFavorites: false,
     };
   },
   methods: {
     async addWeatherBlock(cityName) {
   try {
+    this.loadingWeather = true; 
     const encodedCityName = encodeURIComponent(cityName);
 
     const response = await fetch(
@@ -116,35 +142,35 @@ export default {
     });
 
     const hourlyTemperatures = next24HoursData.map((hourData) => {
-          const time = new Date(hourData.dt_txt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-          const temperature = this.convertKelvinToCelsius(hourData.main.temp);
+      const time = new Date(hourData.dt_txt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const temperature = this.convertKelvinToCelsius(hourData.main.temp);
 
-          return {
-            time: time,
-            temperature: temperature,
-          };
-        });
+      return {
+        time: time,
+        temperature: temperature,
+      };
+    });
 
     this.weatherData.push({
-          cityName: weatherInfo.name,
-          temperature: this.convertKelvinToCelsius(weatherInfo.main.temp),
-          weatherDescription: weatherInfo.weather[0].description,
-          humidity: weatherInfo.main.humidity,
-          windSpeed: weatherInfo.wind.speed,
-          pressure: weatherInfo.main.pressure,
-          hourlyTemperatures: hourlyTemperatures,
-          isWeatherFavorited: false,
-        });
+      cityName: weatherInfo.name,
+      temperature: this.convertKelvinToCelsius(weatherInfo.main.temp),
+      weatherDescription: weatherInfo.weather[0].description,
+      humidity: weatherInfo.main.humidity,
+      windSpeed: weatherInfo.wind.speed,
+      pressure: weatherInfo.main.pressure,
+      hourlyTemperatures: hourlyTemperatures,
+      isWeatherFavorited: false,
+    });
 
     this.autocompleteKey += 1;
     console.log('hourlyTemperatures:', hourlyTemperatures);
+    this.loadingWeather = false;
   } catch (error) {
+    this.loadingWeather = false; 
     this.showModal = true;
     this.modalMessage = 'Oops! Enter the correct city name.';
-    console.error('Error fetching weather data:', error);
   }
 },
-
     addWeatherBlockButton() {
       if (this.weatherData.length >= 5) {
         this.showModal = true;
@@ -164,22 +190,7 @@ export default {
       });
       this.autocompleteKey += 1;
     },
-    removeWeatherBlock(cityName) {
-      const isFavorited = this.favoriteCities.some((weather) => weather.cityName === cityName);
-      if (isFavorited) {
-        const index = this.favoriteCities.findIndex((weather) => weather.cityName === cityName);
-        if (index !== -1) {
-          this.favoriteCities.splice(index, 1);
-        }
-      } else {
-        const index = this.weatherData.findIndex((weather) => weather.cityName === cityName);
-        if (index !== -1) {
-          this.weatherData.splice(index, 1);
-        }
-      }
-    },
-
-    toggleFavoriteCity(cityName) {
+    removeFavoriteCity(cityName) {
       const index = this.favoriteCities.findIndex((weather) => weather.cityName === cityName);
       if (index !== -1) {
         this.favoriteCities.splice(index, 1);
@@ -187,17 +198,30 @@ export default {
         if (cityWeather) {
           cityWeather.isWeatherFavorited = false;
         }
-      } else {
-        if (this.favoriteCities.length >= 5) {
-          this.showModal = true;
-          this.modalMessage = `You can't add more than 5 favorite cities. Remove a city from favorites to add a new one.`;
+      }
+    },
+    async toggleFavoriteCity(cityName) {
+      try {
+        this.loadingFavorites = true;
+        const index = this.favoriteCities.findIndex((weather) => weather.cityName === cityName);
+        if (index !== -1) {
+          this.favoriteCities.splice(index, 1);
         } else {
-          const cityWeather = this.weatherData.find((weather) => weather.cityName === cityName);
-          if (cityWeather) {
-            this.favoriteCities.push(cityWeather);
-            cityWeather.isWeatherFavorited = true;
+          if (this.favoriteCities.length >= 5) {
+            this.showModal = true;
+            this.modalMessage = `You can't add more than 5 favorite cities. Remove a city from favorites to add a new one.`;
+          } else {
+            const cityWeather = this.weatherData.find((weather) => weather.cityName === cityName);
+            if (cityWeather) {
+              this.favoriteCities.push(cityWeather);
+            }
           }
         }
+        this.loadingFavorites = false;
+      } catch (error) {
+        this.loadingFavorites = false;
+        this.showModal = true;
+        this.modalMessage = 'Oops! Something went wrong while updating favorites.';
       }
     },
     isFavoriteCity(cityName) {
@@ -225,7 +249,6 @@ export default {
         this.closeAddWeatherErrorModal();
       }
     },
-
     onCancelModal() {
       if (this.showModal) {
         this.closeModal();
@@ -235,10 +258,18 @@ export default {
         this.closeAddWeatherErrorModal();
       }
     },
-
     closeAddWeatherErrorModal() {
       this.showAddWeatherErrorModal = false;
       this.weatherErrorModalMessage = '';
+    },
+    switchToDayGraph() {
+      this.isWeekGraph = false;
+    },
+    switchToWeekGraph() {
+      this.isWeekGraph = true;
+    },
+    changeLanguage(locale) {
+      this.$i18n.locale = locale;
     },
   },
   mounted() {
@@ -247,6 +278,11 @@ export default {
     if (savedFavoriteCities) {
       this.favoriteCities = JSON.parse(savedFavoriteCities);
     }
+  },
+  computed: {
+    activeLanguage() {
+      return this.$i18n.locale === 'en' ? 'en' : 'uk';
+    },
   },
   watch: {
     favoriteCities: {
@@ -260,4 +296,61 @@ export default {
 </script>
 
 <style>
+@media screen and (min-width: 360px) {
+  .weather-app-container {
+    max-width: 360px;
+    margin: 0 auto;
+  }
+}
+
+@media screen and (min-width: 768px) {
+  .weather-app-container {
+    max-width: 768px;
+  }
+}
+
+@media screen and (min-width: 1200px) {
+  .weather-app-container {
+    max-width: 1200px;
+  }
+}
+
+button {
+  padding: 8px 12px;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 30px;
+  background-color: transparent;
+  border: 1px solid #70bcef;
+  color: #70bcef;
+  transition: all 0.2s ease-in-out;
+}
+
+button:hover {
+  background-color: #70bcef;
+  color: #fff;
+  border: 1px solid transparent;
+}
+
+button.active-tab {
+  background-color: #70bcef;
+  color: #fff;
+  border: 1px solid transparent;
+}
+
+.weather-app-container {
+  text-align: center;
+}
+
+button {
+  margin: 8px;
+}
+
+h1 {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 27px;
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: rgb(114, 192, 229);
+}
 </style>
