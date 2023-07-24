@@ -1,5 +1,11 @@
 # Weather App
 
+<p align="center">
+  <img src="https://github.com/Sveta-Kryukova/vue-app/assets/116656921/75c64475-f535-492d-aaf1-b3ccb8d28ef2" alt="app" width=500">
+</p>
+
+# [DEMO](https://sveta-kryukova.github.io/vue-app/)
+
 ## Description
 
 Weather App is a web application that allows users to view weather information for multiple cities. Users can add up to 5 weather blocks with real-time weather data for their desired cities, switch between hourly and weekly temperature graphs, and mark cities as favorites for quick access.
