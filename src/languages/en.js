@@ -25,6 +25,8 @@ export default {
       'broken clouds': 'Broken Clouds',
       'shower rain': 'Shower Rain',
       'rain': 'Rain',
+      'light rain': 'Light Rain',
+      'moderate rain': 'Moderate Rain',
       'thunderstorm': 'Thunderstorm',
       'snow': 'Snow',
       'mist': 'Mist',

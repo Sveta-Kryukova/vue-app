@@ -13,7 +13,7 @@
     />
     <TemperatureGraph v-if="cityWeather" :hourlyTemperatures="cityWeather.hourlyTemperatures" />
 
-    <div v-if="showRemoveButton">
+    <div v-if="showRemoveButton && !isFavorite">
       <button @click="confirmRemove">{{ $t('message.remove') }}</button>
     </div>
 

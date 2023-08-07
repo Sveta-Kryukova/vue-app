@@ -25,6 +25,8 @@ export default {
     'broken clouds': 'Розірвані хмари',
     'shower rain': 'Зливи',
     'rain': 'Дощ',
+    'light rain': 'Невеликий дощ',
+    'moderate rain': 'Помірний дощ',
     'thunderstorm': 'Гроза',
     'snow': 'Сніг',
     'mist': 'Туман',
